@@ -71,7 +71,6 @@ def scrape_jobs(url, fetch_description):
         for job_div in job_divs:
             title = job_div.find('h2').text.strip()
             company = job_div.find('div', class_='jbs-dot-separeted-list').find('a').text.strip()
-            description = job_div.find('div', class_='job-details-section-box').find('div').text.strip() if fetch_description else ''
             tags = [tag.text.strip() for tag in job_div.find_all('a', class_='tag')]
             date_posted = job_div.find('span', class_='text-primary-text').text.strip()
             salary = job_div.find('span', class_='text-gray-text').text.strip()
@@ -81,7 +80,8 @@ def scrape_jobs(url, fetch_description):
                 salary = "Not mentioned"
 
             job_url = job_div.find('a', class_='jbs-text-hover-link')['href']
-
+            description = BeautifulSoup(requests.get(job_url).content, 'html.parser').find('div', class_='job-details-section-box').find('div').text.strip() if fetch_description else ''
+            
             job = {
                 'title': title,
                 'company': company,
