@@ -22,11 +22,12 @@ def get_user_input():
     """
     job = input("Enter the job title: ")
     remote = input("Do you want remote jobs only? (yes/no): ").lower() == 'yes'
+    description = input("Do you want fetch description? (yes/no): ").lower() == 'yes'
     sort_options = ['matches', 'newest', 'salary']
     print(f"Sort options: {sort_options}")
     sort_by = input("Enter the sorting preference (matches/newest/salary): ")
     save_option = input("Do you want to save the output as CSV, TXT, or both of them? (csv/txt/both): ").lower()
-    return job, remote, save_option, sort_by
+    return job, remote, save_option, sort_by, description
 
 def construct_url(job, remote, sort_by):
     """
@@ -49,7 +50,7 @@ def construct_url(job, remote, sort_by):
     url = base_url + search_params
     return url
 
-def scrape_jobs(url):
+def scrape_jobs(url, fetch_description):
     """
     Scrape job listings from the provided URL.
 
@@ -70,6 +71,7 @@ def scrape_jobs(url):
         for job_div in job_divs:
             title = job_div.find('h2').text.strip()
             company = job_div.find('div', class_='jbs-dot-separeted-list').find('a').text.strip()
+            description = job_div.find('div', class_='job-details-section-box').find('div').text.strip() if fetch_description else ''
             tags = [tag.text.strip() for tag in job_div.find_all('a', class_='tag')]
             date_posted = job_div.find('span', class_='text-primary-text').text.strip()
             salary = job_div.find('span', class_='text-gray-text').text.strip()
@@ -80,15 +82,17 @@ def scrape_jobs(url):
 
             job_url = job_div.find('a', class_='jbs-text-hover-link')['href']
 
-            jobs.append({
+            job = {
                 'title': title,
                 'company': company,
+                'description': description,
                 'company_url': f"https://www.devjobsscanner.com/company/{company.lower()}",
                 'tags': tags,
                 'date_posted': date_posted,
                 'salary': salary,
                 'job_url': job_url
-            })
+            }
+            jobs.append(job)
         return jobs
     except requests.RequestException as e:
         print("Error scraping jobs:", e)
@@ -153,10 +157,10 @@ def save_as_txt(jobs, filename):
         print("Error saving as TXT:", e)
 
 if __name__ == '__main__':
-    job, remote, save_option, sort_by = get_user_input()
+    job, remote, save_option, sort_by, fetch_description = get_user_input()
     url = construct_url(job, remote, sort_by)
     print(f"Scraping URL: {url}")
-    jobs = scrape_jobs(url)
+    jobs = scrape_jobs(url, fetch_description)
     if jobs:
         display_jobs(jobs)
         fileName = f"./outputFiles/{job}_jobs_remote_{str(remote).lower()}_sorted_by_{sort_by}"
